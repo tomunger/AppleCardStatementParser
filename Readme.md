@@ -11,3 +11,20 @@ I add columns for category and a "shared" flag.
 This parser worked on the September statement.  I don't think Apple will change statement format
 that often, but the card is a new product so this parser must be considered in Alpha stage.
 
+## Requirements
+
+`requirements-to-freeze` is the list of top level modules needed.
+
+`requirements.txt` is the list of modules that got installed.
+
+camelot also requires `ghostscript` to be installed on your system
+
+On Macs, you can use brew:  `brew install tcl-tk ghostscript`
+
+But I did my development on Ubuntu.
+
+## Camelot PDF parser
+
+More documentation is on [readthedocs](https://camelot-py.readthedocs.io/en/master/)
+
+
