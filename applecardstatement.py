@@ -53,10 +53,11 @@ class AppleStatementParser(object):
 
 
 
-	def __init__(self):
+	def __init__(self, negate_amount=False):
 		# A list of output rows parsed from last statement.
 		self.statement = []
 		self.debug = 1
+		self.negate_amount = negate_amount
 
 
 
@@ -76,7 +77,7 @@ class AppleStatementParser(object):
 		return v/100.0
 			
 			
-	def _parse_amount(self, p):
+	def _parse_amount(self, p, negate_amount=False):
 		if not p:
 			return 0.0
 		m = self.AMOUNT_PAT.match(p)
@@ -87,6 +88,8 @@ class AppleStatementParser(object):
 		except:
 			raise ParseException("Invalid amount value '{}'".format(p))
 		if m.group(1) == '-':
+			v = -v
+		if negate_amount:
 			v = -v
 		return v
 			
@@ -100,7 +103,7 @@ class AppleStatementParser(object):
 		orow.append("")
 		orow.append(self._parse_percent(irow[self.IBONUS_PERCENT]))
 		orow.append(self._parse_amount(irow[self.IBONUS_AMOUNT]))
-		orow.append(self._parse_amount(irow[self.IAMOUNT]))
+		orow.append(self._parse_amount(irow[self.IAMOUNT], negate_amount=self.negate_amount))
 		self.statement.append(orow)
 
 
@@ -142,7 +145,7 @@ class AppleStatementParser(object):
 
 	def parse(self, infile):
 		self.statement = []
-		tables = camelot.read_pdf('local-pdf/apple card 2019-09.pdf'
+		tables = camelot.read_pdf(infile
 				, pages='2-end'
 				, flavor='stream'
 				#, process_background=True
@@ -162,7 +165,7 @@ class AppleStatementParser(object):
 
 
 def dump_tables(infile, outfile):
-	tables = camelot.read_pdf('local-pdf/apple card 2019-09.pdf'
+	tables = camelot.read_pdf(infile
 				, pages='2-end'
 				, flavor='stream'
 				#, process_background=True
@@ -180,6 +183,7 @@ parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpForm
 
 
 parser.add_argument('-c', action='store_true', help='Dump to csv fils')
+parser.add_argument('-n', action='store_true', help='Negate amounts (make expenses negative values)')
 parser.add_argument('infile', help='Input file (.pdf)')
 parser.add_argument('outfile', help='Output file (.csv).')
 
@@ -189,7 +193,7 @@ args = parser.parse_args()
 if args.c:
 	dump_tables(args.infile, args.outfile)
 else:
-	statement_parser = AppleStatementParser()
+	statement_parser = AppleStatementParser(negate_amount=args.n)
 	try:
 		statement_parser.parse(args.infile)
 	except ParseException as e:
