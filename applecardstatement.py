@@ -33,14 +33,16 @@ class AppleStatementParser(object):
 	IDCA_AMOUNT = 4
 
 	# Output file columns
-	OHEADER = ['Date', 'Description', 'Category', 'Shared', 'BP', 'BA', 'Amount']
+	OHEADER = ['Date', 'Description', 'Category', 'Note', 'S', '%', 'Cash', 'Amount', 'Split']
 	ODATE = 0
 	ODESCRIPTION = 1
 	OCATEGORY = 2
-	OSHARED = 3
-	OBONUS_PERCENT = 4
-	OBONUS_AMOUNT = 5
-	OAMOUNT = 6
+	ONote = 3
+	OSHARED = 4
+	OBONUS_PERCENT = 5
+	OBONUS_AMOUNT = 6
+	OAMOUNT = 7
+	OSPLIT = 8
 
 	# Pattern for a percentage
 	PERCENT_PAT = re.compile("(-?)(\\d+)\\%")
@@ -99,11 +101,13 @@ class AppleStatementParser(object):
 		orow = []
 		orow.append(irow[self.IDATE])
 		orow.append(irow[self.IDESCRIPTION])
-		orow.append("")
-		orow.append("")
+		orow.append("")		# Note
+		orow.append("")		# Category
+		orow.append("")		# Shared
 		orow.append(self._parse_percent(irow[self.IBONUS_PERCENT]))
 		orow.append(self._parse_amount(irow[self.IBONUS_AMOUNT]))
 		orow.append(self._parse_amount(irow[self.IAMOUNT], negate_amount=self.negate_amount))
+		orow.append("")		# Split
 		self.statement.append(orow)
 
 

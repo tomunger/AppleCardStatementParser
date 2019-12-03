@@ -27,4 +27,10 @@ But I did my development on Ubuntu.
 
 More documentation is on [readthedocs](https://camelot-py.readthedocs.io/en/master/)
 
+## Running
+
+. env/bin/activate
+python3 applecardstatement.py PDF-File CSV-File
+
+    python3 applecardstatement.py ../../../Documents/finance/statements/applecard/apple\ card\ 2019-11.pdf ../../../Documents/finance/statements/applecard/apple\ card\ 2019-11.csv
 
