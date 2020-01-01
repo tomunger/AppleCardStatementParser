@@ -98,6 +98,8 @@ class AppleStatementParser(object):
 
 
 	def _parse_row(self, irow):
+		'''Parse a single input row, producing an output row
+		and append that to our statement.'''
 		orow = []
 		orow.append(irow[self.IDATE])
 		orow.append(irow[self.IDESCRIPTION])
@@ -112,12 +114,24 @@ class AppleStatementParser(object):
 
 
 
-	def _parse_transaction_table(self, transactions):
-		i = 0
+	def _parse_transaction_table(self, table_number, transactions, startIndex):
+		'''Parse transactions from table 
+
+		Parameters:
+			table_number - Table we are parsing
+			transactions - Table data
+			startIndex - Index of first transaction to parse
+
+		Returns:
+			(txCount, i) - Number of transactions parsed and the index of one beyond last row parsed.
+		'''
+		i = startIndex
+		txCount = 0
 		while i < len(transactions):
 			row = transactions[i]
 			if self.DATE_PAT.match(row[0]):
 				self._parse_row(row)
+				txCount += 1
 				if i+1 < len(transactions) and transactions[i+1][self.IDCA] == "Daily Cash Adjustment":
 					# Refunds cause a dailly cash adjustment as a charge to the apple card
 					# Same date as previous transaction
@@ -126,39 +140,68 @@ class AppleStatementParser(object):
 					adj_row[0] = row[0]
 					self._parse_row(adj_row)
 			else:
-				print ("    Skipping '{}'".format(row[0]))
+				print ("  {}:    Skipping '{}'".format(table_number, row[0]))
 			i += 1
+		return (txCount, i)
 
 
 
-	def _parse_table(self, table, table_count):
+	def _parse_table(self, table_number, table):
+		'''Parse a table.  
+
+		Parameters:
+			table_number - the table we are parsing
+			table - Table data
+
+		Returns:
+			Number of transactions parsed. 
+
+		'''
+		txCount = 0
 		if len(table.data) < 3:
-			print ("  {}:  too short".format(table_count))
-			return
-		if len(table.data[0]) < 1 or table.data[0][0] != 'Transactions':
-			print ("  {}:  First header does not contain 'Transactions'".format(table_count))
-			return
-		if len(table.data[1]) < 5 or table.data[1] != ["Date","Description","Daily Cash","","Amount"]:
-			print ("  {}:  Second header does not column names".format(table_count))
-			return
-		print ("  {}:  Transaction table".format(table_count))
-		self._parse_transaction_table(table.data[2:])
+			print ("  {}:  too short".format(table_number))
+			return txCount
 
+		#
+		# Search table for header that indicates beginning of transactions
+		# Only look onces until transactions are found and assume remainder of table
+		# contains data. 
+		#
+		extractAt = -1
+		for ri in range(0,len(table.data)-2):
+			if len(table.data[ri]) >= 1 and table.data[ri][0] == 'Transactions':
+				if len(table.data[ri+1]) == 5 and table.data[ri+1] == ["Date","Description","Daily Cash","","Amount"]:
+					extractAt = ri
+					break
+			# print ("  {}:  Skip row {}: {}".format(table_number, ri, ",".join(table.data[ri])))
+
+		# 
+		# Headers found, parse at first data row.
+		#
+		if extractAt >= 0:
+			print ("  {}:  Extract row {}: {}".format(table_number, extractAt+1, ",".join(table.data[extractAt+1])))
+			(txCount, endAt) = self._parse_transaction_table(table_number, table.data, extractAt+2)
+			print ("  {}:  {} Transactions, End at row {}:  {}".format(table_number, txCount, endAt, 
+					"(last)" if endAt == len(table.data) else ",".join(table.data[extractAt+1])))
+		return txCount
    
 
 
 	def parse(self, infile):
+		txCount = 0
 		self.statement = []
 		tables = camelot.read_pdf(infile
 				, pages='2-end'
 				, flavor='stream'
 				#, process_background=True
 				)
-		i = 0
+		table_number = 0
 		if self.debug >= 1: print ("Tables:  {}".format(len(tables)))
 		for table in tables:
-			self._parse_table(table, i)
-			i += 1
+			tc = self._parse_table(table_number, table)
+			table_number += 1
+			txCount += tc
+		print ("{} transactions".format(txCount))
 
 
 	def write(self, outfile):
@@ -175,18 +218,18 @@ def dump_tables(infile, outfile):
 				#, process_background=True
 				)
 	(n,e) = os.path.splitext(outfile)
-	i = 0
+	table_number = 0
 	for table in tables:
-		of = "{}_{}.csv".format(n,i,e)
+		of = "{}_{}.csv".format(n,table_number,e)
 		table.to_csv(of)
-		i += 1
+		table_number += 1
 
 
 parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
 	description='''Parse apple card statement.''')
 
 
-parser.add_argument('-c', action='store_true', help='Dump to csv fils')
+parser.add_argument('-c', action='store_true', help='Dump all tables to csv files')
 parser.add_argument('-n', action='store_true', help='Negate amounts (make expenses negative values)')
 parser.add_argument('infile', help='Input file (.pdf)')
 parser.add_argument('outfile', help='Output file (.csv).')
