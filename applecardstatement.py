@@ -91,7 +91,14 @@ class AppleStatementParser(object):
 			raise ParseException("Invalid amount value '{}'".format(p))
 		if m.group(1) == '-':
 			v = -v
-		if negate_amount:
+
+		#
+		# Negation.  Normal case is to negate the amount
+		# because statements declare positive charge while imports want negative for the 
+		# charge (expense).  So the positive charges naturally become negative expense
+		# or positive income.
+		# UNLESS we have been asked to negate this and report positive expense and negative income.
+		if not negate_amount:
 			v = -v
 		return v
 			
@@ -226,11 +233,15 @@ def dump_tables(infile, outfile):
 
 
 parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
-	description='''Parse apple card statement.''')
+	description='''Parse apple card statement.
+	
+Normally writes charges as negative expense and payments as positive deposits.  This
+works best for most import to banktivity.  -n will switch this.
+''')
 
 
 parser.add_argument('-c', action='store_true', help='Dump all tables to csv files')
-parser.add_argument('-n', action='store_true', help='Negate amounts (make expenses negative values)')
+parser.add_argument('-n', action='store_true', help='Negate amounts (make expenses POSITIVE values)')
 parser.add_argument('infile', help='Input file (.pdf)')
 parser.add_argument('outfile', help='Output file (.csv).')
 
