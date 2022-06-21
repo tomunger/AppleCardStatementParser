@@ -3,7 +3,7 @@ chardet==3.0.4
 Click==7.0
 et-xmlfile==1.0.1
 jdcal==1.4.1
-numpy==1.17.2
+numpy==1.22.0
 opencv-python==4.1.1.26
 openpyxl==2.6.3
 pandas==0.25.1
